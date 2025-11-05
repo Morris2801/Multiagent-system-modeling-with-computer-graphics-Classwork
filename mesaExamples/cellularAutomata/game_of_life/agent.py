@@ -46,9 +46,9 @@ class Cell(FixedAgent):
         self._next_state = self.state
 
         # Calculate abstract positions of three neighbors above (horizontally)
-        upLeftPos = [self.x-1, self.y+1]
-        upCenterPos = [self.x, self.y+1]
-        upRightPos = [self.x+1, self.y+1]
+        upLeftPos = [self.x-1, (self.y+1) % 50]
+        upCenterPos = [self.x, (self.y+1) % 50]
+        upRightPos = [self.x+1, (self.y+1) % 50]
         # Bools to check states alive/dead of corresponding neighbors
         upLeft = False
         upCenter = False
@@ -65,9 +65,7 @@ class Cell(FixedAgent):
             if neighborPos == upRightPos and neighbor.is_alive:
                 upRight = True
 
-        if self.y == 49: 
-            self._next_state = self.ALIVE if self.random.random() < 0.5 else self.DEAD
-        elif upLeft and upCenter and upRight:
+        if upLeft and upCenter and upRight:
             self._next_state = self.DEAD
         elif upLeft and upCenter and not upRight:
             self._next_state = self.ALIVE
