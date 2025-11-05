@@ -65,31 +65,25 @@ class Cell(FixedAgent):
             if neighborPos == upRightPos and neighbor.is_alive:
                 upRight = True
 
-        # Update all cells except top row
-        if (self.y != 49):
-            if upRight and upCenter and upLeft:
-                self._next_state = self.DEAD
-            if upRight and upCenter and not upLeft:
-                self._next_state = self.ALIVE
-            if upRight and not upCenter and upLeft:
-                self._next_state = self.DEAD
-            if upRight and not upCenter and not upLeft:
-                self._next_state = self.ALIVE
-            if not upRight and upCenter and upLeft:
-                self._next_state = self.ALIVE
-            if not upRight and upCenter and not upLeft:
-                self._next_state = self.DEAD
-            if not upRight and not upCenter and upLeft:
-                self._next_state = self.ALIVE
-            if not upRight and not upCenter and not upLeft:
-                self._next_state = self.DEAD
-        # Maintain top row cells as initially set
-        else:
-            if self.y == 49 and self._next_state == self.ALIVE:
-                self._next_state = self.ALIVE
-            else: 
-                self._next_state = self.DEAD
-
+        if self.y == 49: 
+            self._next_state = self.ALIVE if self.random.random() < 0.5 else self.DEAD
+        elif upLeft and upCenter and upRight:
+            self._next_state = self.DEAD
+        elif upLeft and upCenter and not upRight:
+            self._next_state = self.ALIVE
+        elif upLeft and not upCenter and upRight:
+            self._next_state = self.DEAD
+        elif upLeft and not upCenter and not upRight:
+            self._next_state = self.ALIVE
+        elif not upLeft and upCenter and upRight:
+            self._next_state = self.ALIVE
+        elif not upLeft and upCenter and not upRight:
+            self._next_state = self.DEAD
+        elif not upLeft and not upCenter and upRight:
+            self._next_state = self.ALIVE
+        elif not upLeft and not upCenter and not upRight:
+            self._next_state = self.DEAD
+        
     def assume_state(self):
         """Set the state to the new computed state -- computed in step()."""
         self.state = self._next_state
