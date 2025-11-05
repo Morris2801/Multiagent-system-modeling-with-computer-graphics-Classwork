@@ -21,8 +21,7 @@ class ConwaysGameOfLife(Model):
         """
         self.grid = OrthogonalMooreGrid((width, height), capacity=1, torus=True)
 
-        # Place a cell at each location, with some initialized to
-        # ALIVE and some to DEAD.
+        # Place a cell at each location, and top row randomly alive/dead
         for cell in self.grid.all_cells:
             if (cell.coordinate[1] == 49):
                 Cell(
@@ -34,6 +33,7 @@ class ConwaysGameOfLife(Model):
                         else Cell.DEAD
                     ),
                 )
+            # All other cells start dead
             else:
                 Cell(self, cell, init_state=Cell.DEAD)
         self.running = True

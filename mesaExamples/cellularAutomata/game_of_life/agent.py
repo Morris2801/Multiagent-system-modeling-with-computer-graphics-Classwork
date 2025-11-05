@@ -45,15 +45,19 @@ class Cell(FixedAgent):
         # Assume nextState is unchanged, unless changed below.
         self._next_state = self.state
 
+        # Calculate abstract positions of three neighbors above (horizontally)
         upLeftPos = [self.x-1, self.y+1]
         upCenterPos = [self.x, self.y+1]
         upRightPos = [self.x+1, self.y+1]
+        # Bools to check states alive/dead of corresponding neighbors
         upLeft = False
         upCenter = False
         upRight = False
-
+        # Iterate through neighbors
         for neighbor in self.neighbors:
+            #Get neighbor positions
             neighborPos = [neighbor.x, neighbor.y]
+            # Compare matching positions and assign corresponding states
             if neighborPos == upLeftPos and neighbor.is_alive:
                 upLeft = True
             if neighborPos == upCenterPos and neighbor.is_alive:
@@ -61,6 +65,7 @@ class Cell(FixedAgent):
             if neighborPos == upRightPos and neighbor.is_alive:
                 upRight = True
 
+        # Update all cells except top row
         if (self.y != 49):
             if upRight and upCenter and upLeft:
                 self._next_state = self.DEAD
@@ -78,6 +83,7 @@ class Cell(FixedAgent):
                 self._next_state = self.ALIVE
             if not upRight and not upCenter and not upLeft:
                 self._next_state = self.DEAD
+        # Maintain top row cells as initially set
         else:
             if self.y == 49 and self._next_state == self.ALIVE:
                 self._next_state = self.ALIVE
