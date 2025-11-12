@@ -45,44 +45,13 @@ class Cell(FixedAgent):
         # Assume nextState is unchanged, unless changed below.
         self._next_state = self.state
 
-        # Calculate abstract positions of three neighbors above (horizontally)
-        upLeftPos = [self.x-1, (self.y+1) % 50]
-        upCenterPos = [self.x, (self.y+1) % 50]
-        upRightPos = [self.x+1, (self.y+1) % 50]
-        # Bools to check states alive/dead of corresponding neighbors
-        upLeft = False
-        upCenter = False
-        upRight = False
-        # Iterate through neighbors
-        for neighbor in self.neighbors:
-            #Get neighbor positions
-            neighborPos = [neighbor.x, neighbor.y]
-            # Compare matching positions and assign corresponding states
-            if neighborPos == upLeftPos and neighbor.is_alive:
-                upLeft = True
-            if neighborPos == upCenterPos and neighbor.is_alive:
-                upCenter = True
-            if neighborPos == upRightPos and neighbor.is_alive:
-                upRight = True
+        if self.is_alive:
+            if live_neighbors < 2 or live_neighbors > 3:
+                self._next_state = self.DEAD
+        else:
+            if live_neighbors == 3:
+                self._next_state = self.ALIVE
 
-        if upLeft and upCenter and upRight:
-            self._next_state = self.DEAD
-        elif upLeft and upCenter and not upRight:
-            self._next_state = self.ALIVE
-        elif upLeft and not upCenter and upRight:
-            self._next_state = self.DEAD
-        elif upLeft and not upCenter and not upRight:
-            self._next_state = self.ALIVE
-        elif not upLeft and upCenter and upRight:
-            self._next_state = self.ALIVE
-        elif not upLeft and upCenter and not upRight:
-            self._next_state = self.DEAD
-        elif not upLeft and not upCenter and upRight:
-            self._next_state = self.ALIVE
-        elif not upLeft and not upCenter and not upRight:
-            self._next_state = self.DEAD
-        
     def assume_state(self):
         """Set the state to the new computed state -- computed in step()."""
         self.state = self._next_state
-    
