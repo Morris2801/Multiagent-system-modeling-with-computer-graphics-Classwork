@@ -47,9 +47,10 @@ void main() {
 // Estructuras con condiciones iniciales
 const objects = {
     pivot: {
+        id: 'pivot',
         transforms: {
             t: {
-                x: 600 ,
+                x: 600,
                 y: 300,
             },
             s: {
@@ -61,19 +62,26 @@ const objects = {
         size: 10,
     },
     smiley: {
+        id: 'smiley',
         transforms: {
             t: {
                 x: 600, 
                 y: 300,
             },
             rr: {
-                z: 180,
+                z: 0, 
             },
             s: {
                 x: 1,
                 y: 1,
             }
         },
+        colors: {
+            face: [1, 1, 0, 1],
+            leftEye: [0, 0, 0, 1],
+            rightEye: [0, 0, 0, 1],
+            mouth: [1, 0, 0, 1],
+        }
     }
 }
 
@@ -83,94 +91,87 @@ function main() {
     const gl = canvas.getContext('webgl2');
     twgl.resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
     setupUI(gl);
-
     const programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
-    // creación de cara
-    const arrays = caraFeliz(100, 25, 50);
-    const bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
-    const vao = twgl.createVAOFromBufferInfo(gl, programInfo, bufferInfo);
-    // creación de pivote cuadrado
+    // Creación de cara
+    // Creación de pivote cuadrado
     const square = generateData(4, objects.pivot.size);
     const squareBufferInfo = twgl.createBufferInfoFromArrays(gl, square);
     const squareVao = twgl.createVAOFromBufferInfo(gl, programInfo, squareBufferInfo);
-
-    drawScene(gl, vao, programInfo, bufferInfo, squareVao, squareBufferInfo);
+    objects.pivot.vao = squareVao;
+    objects.pivot.bufferInfo = squareBufferInfo;
+    
+    const arrays = caraFeliz(100, 25, 50);
+    const bufferInfo = twgl.createBufferInfoFromArrays(gl, arrays);
+    const vao = twgl.createVAOFromBufferInfo(gl, programInfo, bufferInfo);
+    objects.smiley.vao = vao;
+    objects.smiley.bufferInfo = bufferInfo;
+    drawScene(gl, programInfo);
 }
 
 // Function to do the actual display of the objects
-function drawScene(gl, vao, programInfo, bufferInfo, squareVao, squareBufferInfo) {
+function drawScene(gl, programInfo) {
     gl.useProgram(programInfo.program);
 
-    // cara --------------------
-    const angle = objects.smiley.transforms.rr.z * Math.PI / 180;
-    const faceT = [
-        objects.smiley.transforms.t.x,
-        objects.smiley.transforms.t.y
-    ];
-    const scale = [
-        objects.smiley.transforms.s.x,
-        objects.smiley.transforms.s.y
-    ];
-    const pivotT = [
-        objects.pivot.transforms.t.x,
-        objects.pivot.transforms.t.y
-    ];
-    // Matrices 
-    const traFaceMat = M3.translation(faceT);
-    const scaMat = M3.scale(scale);
-    const traToPivot = M3.translation([-pivotT[0], -pivotT[1]]); //mover pivote a origen
-    const rotMat = M3.rotation(angle); //rotar
-    const traFromPivot = M3.translation([pivotT[0], pivotT[1]]); // regresar posición del pivote
+    for (const object of Object.values(objects)) {
+        let transforms = M3.identity();
+        if (object.id === 'pivot') {
+            const pivotPos = [object.transforms.t.x, object.transforms.t.y];
+            const pivotScale = [object.transforms.s.x, object.transforms.s.y];
+            transforms = M3.multiply(M3.scale(pivotScale), transforms);
+            transforms = M3.multiply(M3.translation(pivotPos), transforms);
+            let uniforms = {
+                u_resolution: [gl.canvas.width, gl.canvas.height],
+                u_transforms: transforms,
+                u_color: object.color,
+            };
+            twgl.setUniforms(programInfo, uniforms);
+            gl.bindVertexArray(object.vao);
+            twgl.drawBufferInfo(gl, object.bufferInfo);
+            
+        } else if (object.id === 'smiley') {
+            // Para la cara, aplicar transformaciones respecto al pivote
+            const angle = object.transforms.rr.z * Math.PI / 180;
+            const facePos = [object.transforms.t.x, object.transforms.t.y];
+            const faceScale = [object.transforms.s.x, object.transforms.s.y];
+            const pivotPos = [objects.pivot.transforms.t.x, objects.pivot.transforms.t.y];
+            
+            // Orden: Escala -> Trasladar cara -> Mover a origen (pivote) -> Rotar -> Regresar pivote
+            transforms = M3.multiply(M3.scale(faceScale), transforms);
+            transforms = M3.multiply(M3.translation(facePos), transforms);
+            transforms = M3.multiply(M3.translation([-pivotPos[0], -pivotPos[1]]), transforms);
+            transforms = M3.multiply(M3.rotation(angle), transforms);
+            transforms = M3.multiply(M3.translation(pivotPos), transforms);
+            
+            gl.bindVertexArray(object.vao);
+            
+            // Dibujar cara (amarilla)
+            let uniforms = {
+                u_resolution: [gl.canvas.width, gl.canvas.height],
+                u_transforms: transforms,
+                u_color: object.colors.face,
+            };
+            twgl.setUniforms(programInfo, uniforms);
+            gl.drawElements(gl.TRIANGLES, 300, gl.UNSIGNED_SHORT, 0);
+            
+            // Dibujar ojo izquierdo (negro)
+            uniforms.u_color = object.colors.leftEye;
+            twgl.setUniforms(programInfo, uniforms);
+            gl.drawElements(gl.TRIANGLES, 60, gl.UNSIGNED_SHORT, 300 * 2);
+            
+            // Dibujar ojo derecho (negro)
+            uniforms.u_color = object.colors.rightEye;
+            twgl.setUniforms(programInfo, uniforms);
+            gl.drawElements(gl.TRIANGLES, 60, gl.UNSIGNED_SHORT, (300 + 60) * 2);
+            
+            // Dibujar boca (roja)
+            uniforms.u_color = object.colors.mouth;
+            twgl.setUniforms(programInfo, uniforms);
+            gl.drawElements(gl.TRIANGLES, 150, gl.UNSIGNED_SHORT, (300 + 60 + 60) * 2);
+        }
+    }
 
-    //transformaciones
-    // 1 Escalar 2 mover 3) Mover pivote -> rotar ->regresar pivote
-    let transformsSmiley = M3.identity();
-    transformsSmiley = M3.multiply(scaMat, transformsSmiley);
-    transformsSmiley = M3.multiply(traFaceMat, transformsSmiley);
-    transformsSmiley = M3.multiply(traToPivot, transformsSmiley);
-    transformsSmiley = M3.multiply(rotMat, transformsSmiley);
-    transformsSmiley = M3.multiply(traFromPivot, transformsSmiley);
-    gl.bindVertexArray(vao);
-    let uniforms = {
-        u_resolution: [gl.canvas.width, gl.canvas.height],
-        u_transforms: transformsSmiley,
-        u_color: [1, 1, 0, 1], // cara amarilla
-    };
-    twgl.setUniforms(programInfo, uniforms);
-    gl.drawElements(gl.TRIANGLES, 300, gl.UNSIGNED_SHORT, 0);
-    uniforms.u_color = [0, 0, 0, 1]; // ojo izq
-    twgl.setUniforms(programInfo, uniforms);
-    gl.drawElements(gl.TRIANGLES, 60, gl.UNSIGNED_SHORT, 300 * 2);
-    uniforms.u_color = [0, 0, 0, 1]; // ojo der
-    twgl.setUniforms(programInfo, uniforms);
-    gl.drawElements(gl.TRIANGLES, 60, gl.UNSIGNED_SHORT, (300 + 60) * 2);
-    uniforms.u_color = [1, 0, 0, 1]; // boca
-    twgl.setUniforms(programInfo, uniforms);
-    gl.drawElements(gl.TRIANGLES, 150, gl.UNSIGNED_SHORT, (300 + 60 + 60) * 2);
-
-    // pivote ------------------
-    const pivotScale = [
-        objects.pivot.transforms.s.x,
-        objects.pivot.transforms.s.y
-    ];
-    const pivotScaMat = M3.scale(pivotScale);
-    const pivotTraMat = M3.translation(pivotT);
-    let transformsPivot = M3.identity();
-    transformsPivot = M3.multiply(pivotScaMat, transformsPivot);
-    transformsPivot = M3.multiply(pivotTraMat, transformsPivot);
-    let uniformsSquare = {
-        u_resolution: [gl.canvas.width, gl.canvas.height],
-        u_transforms: transformsPivot,
-        u_color: objects.pivot.color,
-    };
-    gl.bindVertexArray(squareVao);
-    twgl.setUniforms(programInfo, uniformsSquare);
-    twgl.drawBufferInfo(gl, squareBufferInfo);
-    requestAnimationFrame(() =>
-        drawScene(gl, vao, programInfo, bufferInfo, squareVao, squareBufferInfo)
-    );
+    requestAnimationFrame(() => drawScene(gl, programInfo));
 }
 
 function setupUI(gl) {
